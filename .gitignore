@@ -1,0 +1,22 @@
+# .gitignore
+node_modules/
+.pnpm-store/
+.pnpm-debug.log
+pnpm-lock.yaml
+dist/
+.next/
+.out/
+.cache/
+.vscode/
+.env
+.env.local
+.env.development
+.env.production
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+.envrc
+.DS_Store
+.idea/
