@@ -6,6 +6,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 from geoalchemy2 import Geometry
 from app.models.base import BaseModel
+from sqlalchemy.orm import relationship
+from typing import List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.request import RideRequest
+    from app.models.user import User
 
 class Journey(BaseModel):
     __tablename__ = "journeys"
@@ -20,7 +26,11 @@ class Journey(BaseModel):
     price: Mapped[float] = mapped_column(Float, nullable=True)
     max_participants: Mapped[int] = mapped_column(Integer, nullable=True)
     scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    available_seats: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     
+    # Relationships
+    host: Mapped["User"] = relationship("User")
+    requests: Mapped[List["RideRequest"]] = relationship("RideRequest", back_populates="journey", cascade="all, delete-orphan")
     # Route details
     distance_meters: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

@@ -8,7 +8,9 @@ class Settings(BaseSettings):
     DATABASE_URL_ASYNC: str = "postgresql+asyncpg://journey:journey_dev@localhost:5432/journey"
     SQLALCHEMY_DATABASE_URL: str = "postgresql+psycopg2://journey:journey_dev@localhost:5432/journey"
     REDIS_URL: str = "redis://localhost:6379/0"
-    # JWT
+    OPEN_ROUTE_SERVICE_API_KEY: str = ""
+
+    # JWT Settings
     JWT_SECRET: str = "supersecretkeychange_me"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30

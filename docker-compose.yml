@@ -55,7 +55,7 @@ services:
       context: ./services/api
       dockerfile: Dockerfile
     container_name: journey-celery
-    command: celery -A app.core.celery_app worker --loglevel=info
+    command: celery -A app.worker:celery_app worker --loglevel=info
     volumes:
       - ./services/api:/app
     environment:
@@ -72,13 +72,18 @@ services:
 
   journey-web:
     build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+      context: ./apps/web
+      dockerfile: Dockerfile
     container_name: journey-web
     ports:
       - "3000:3000"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      # Use dynamic relative path /api/v1 for Next.js to proxy automatically
+      - NEXT_PUBLIC_API_URL=/api/v1
     env_file:
       - .env
     depends_on:

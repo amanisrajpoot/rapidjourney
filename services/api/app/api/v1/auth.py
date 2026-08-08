@@ -49,9 +49,9 @@ async def send_otp(request: OTPRequest, redis_client: RedisClient = Depends(Redi
             print(f"[OTP Error] Fast2SMS failed: {e}")
             # Do not fail the request in dev if SMS fails, just log it
     else:
-        print(f"[OTP Console Fallback] Phone {request.phone} -> Code {code}")
+        print(f"[OTP Console Fallback] Phone {request.phone} -> Code {code}", flush=True)
         
-    return {"detail": "OTP sent"}
+    return {"detail": "OTP sent", "otp": code}
 
 from app.core.database import AsyncSessionLocal
 from app.models.user import User
@@ -72,14 +72,19 @@ async def verify_otp(
     
     await redis_client.delete(f"otp:{payload.phone}")
     
-    # Check if user exists by phone
-    # For now simply create a new user to satisfy FK
-    new_user = User(phone=payload.phone)
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
+    from sqlalchemy import select
     
-    user_id = str(new_user.id)
+    # Check if user exists by phone
+    result = await db.execute(select(User).where(User.phone == payload.phone))
+    user = result.scalars().first()
+    
+    if not user:
+        user = User(phone=payload.phone)
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    
+    user_id = str(user.id)
     access = create_access_token(subject=user_id)
     refresh = create_refresh_token(subject=user_id)
     return TokenResponse(access_token=access, refresh_token=refresh)

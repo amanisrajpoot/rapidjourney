@@ -8,15 +8,16 @@ import * as maplibregl from "maplibre-gl";
 if (typeof window !== "undefined") {
   maplibregl.setWorkerUrl("https://unpkg.com/maplibre-gl@6.2.0/dist/maplibre-gl-worker.mjs");
 }
-
 interface InteractiveMapProps {
   originCoords: [number, number] | null;
   destCoords: [number, number] | null;
   routeGeoJSON: any | null;
   driverLocation?: [number, number] | null;
+  onMapMove?: () => void;
+  onMapCenterChange?: (coords: [number, number]) => void;
 }
 
-export default function InteractiveMap({ originCoords, destCoords, routeGeoJSON, driverLocation }: InteractiveMapProps) {
+export default function InteractiveMap({ originCoords, destCoords, routeGeoJSON, driverLocation, onMapMove, onMapCenterChange }: InteractiveMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
@@ -26,10 +27,14 @@ export default function InteractiveMap({ originCoords, destCoords, routeGeoJSON,
   // Fit bounds when route or coords change
   useEffect(() => {
     if (!mapTilerKey) return; // safe to guard inside effect
-    if (mapLoaded && mapRef.current && originCoords && destCoords) {
-      const bounds = new maplibregl.LngLatBounds(originCoords, originCoords);
-      bounds.extend(destCoords);
-      mapRef.current.fitBounds(bounds, { padding: 60, duration: 1000 });
+    if (mapLoaded && mapRef.current) {
+      if (originCoords && destCoords) {
+        const bounds = new maplibregl.LngLatBounds(originCoords, originCoords);
+        bounds.extend(destCoords);
+        mapRef.current.fitBounds(bounds, { padding: 60, duration: 1000 });
+      } else if (originCoords && !destCoords) {
+        mapRef.current.flyTo({ center: originCoords, zoom: 14, duration: 1000 });
+      }
     }
   }, [mapLoaded, originCoords, destCoords, routeGeoJSON, mapTilerKey]);
 
@@ -48,15 +53,19 @@ export default function InteractiveMap({ originCoords, destCoords, routeGeoJSON,
     <div className="absolute inset-0 w-full h-full">
       <Map
         ref={mapRef}
-        initialViewState={{
-          longitude: 77.209, // Default to New Delhi
-          latitude: 28.6139,
-          zoom: 12,
-        }}
-        mapStyle={mapStyle}
+        initialViewState={{ longitude: 77.5946, latitude: 12.9716, zoom: 11 }}
+        mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
         style={{ width: "100%", height: "100%" }}
         onLoad={() => setMapLoaded(true)}
         attributionControl={false}
+        maxBounds={[74.05, 11.59, 78.58, 18.44]}
+        onMove={() => onMapMove && onMapMove()}
+        onMoveEnd={(e) => {
+          if (onMapCenterChange) {
+            const center = e.viewState;
+            onMapCenterChange([center.longitude, center.latitude]);
+          }
+        }}
       >
         <NavigationControl position="top-right" />
         <GeolocateControl
@@ -71,6 +80,11 @@ export default function InteractiveMap({ originCoords, destCoords, routeGeoJSON,
             <Layer
               id="route-line"
               type="line"
+              source="route"
+              layout={{
+                "line-join": "round",
+                "line-cap": "round",
+              }}
               paint={{
                 "line-color": "#3b82f6",
                 "line-width": 5,

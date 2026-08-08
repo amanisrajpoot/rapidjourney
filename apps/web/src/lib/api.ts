@@ -41,8 +41,8 @@ interface FetchOptions extends RequestInit {
 }
 
 export async function apiClient(endpoint: string, options: FetchOptions = {}) {
-  // Grab token from localStorage (assuming AuthContext sets it there)
-  const token = localStorage.getItem("access_token");
+  // Grab token from sessionStorage (assuming AuthContext sets it there)
+  const token = sessionStorage.getItem("access_token");
   
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -87,3 +87,9 @@ export async function apiClient(endpoint: string, options: FetchOptions = {}) {
   if (response.status === 204) return null;
   return response.json();
 }
+
+apiClient.get = (endpoint: string, options: FetchOptions = {}) => apiClient(endpoint, { ...options, method: 'GET' });
+apiClient.post = (endpoint: string, data?: any, options: FetchOptions = {}) => apiClient(endpoint, { ...options, method: 'POST', data });
+apiClient.put = (endpoint: string, data?: any, options: FetchOptions = {}) => apiClient(endpoint, { ...options, method: 'PUT', data });
+apiClient.patch = (endpoint: string, data?: any, options: FetchOptions = {}) => apiClient(endpoint, { ...options, method: 'PATCH', data });
+apiClient.delete = (endpoint: string, options: FetchOptions = {}) => apiClient(endpoint, { ...options, method: 'DELETE' });

@@ -16,6 +16,7 @@ export default function LoginSheet({ onClose }: LoginSheetProps) {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [testOtp, setTestOtp] = useState<string | null>(null);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +27,10 @@ export default function LoginSheet({ onClose }: LoginSheetProps) {
     setError("");
     setLoading(true);
     try {
-      await sendOtp(phone);
+      const response = await sendOtp(phone);
+      if (response.otp) {
+        setTestOtp(response.otp);
+      }
       setStep("otp");
     } catch (err: any) {
       setError(err.message || "Failed to send OTP. Please try again.");
@@ -156,6 +160,13 @@ export default function LoginSheet({ onClose }: LoginSheetProps) {
               disabled={loading}
               autoFocus
             />
+            
+            {testOtp && (
+              <div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded-xl text-center text-sm border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
+                <span className="font-bold block mb-1">Testing Mode</span>
+                Your OTP is: <span className="text-lg font-mono tracking-widest">{testOtp}</span>
+              </div>
+            )}
             
             <button
               type="submit"
