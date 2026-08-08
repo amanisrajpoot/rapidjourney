@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = "your-google-client-secret"
     # SMS Provider
     SMS_PROVIDER: str = "console"
+    # Maps / Route
+    OPEN_ROUTE_SERVICE_API_KEY: str | None = None
     # Misc
     CORS_ORIGINS: str = "*"
 

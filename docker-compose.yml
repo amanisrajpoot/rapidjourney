@@ -27,3 +27,59 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  journey-api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    container_name: journey-api
+    command: bash -c "alembic -c alembic.ini upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/api:/app
+    environment:
+      - SQLALCHEMY_DATABASE_URL=postgresql+psycopg2://journey:journey_dev@journey-postgres:5432/journey
+      - DATABASE_URL_ASYNC=postgresql+asyncpg://journey:journey_dev@journey-postgres:5432/journey
+      - REDIS_URL=redis://journey-redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      journey-postgres:
+        condition: service_healthy
+      journey-redis:
+        condition: service_healthy
+
+  journey-celery:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    container_name: journey-celery
+    command: celery -A app.core.celery_app worker --loglevel=info
+    volumes:
+      - ./services/api:/app
+    environment:
+      - SQLALCHEMY_DATABASE_URL=postgresql+psycopg2://journey:journey_dev@journey-postgres:5432/journey
+      - DATABASE_URL_ASYNC=postgresql+asyncpg://journey:journey_dev@journey-postgres:5432/journey
+      - REDIS_URL=redis://journey-redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      journey-redis:
+        condition: service_healthy
+      journey-api:
+        condition: service_started
+
+  journey-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: journey-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    env_file:
+      - .env
+    depends_on:
+      - journey-api

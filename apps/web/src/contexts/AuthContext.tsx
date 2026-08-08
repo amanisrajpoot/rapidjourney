@@ -10,6 +10,9 @@ interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
+  token: string | null;
+  isDriverMode: boolean;
+  setDriverMode: (mode: boolean) => void;
   loginWithOtp: (phone: string, code: string) => Promise<void>;
   loginGuest: () => Promise<void>;
   logout: () => void;
@@ -20,11 +23,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isDriverMode, setDriverMode] = useState(false);
 
   useEffect(() => {
     // Check local storage on load
-    const token = localStorage.getItem("access_token");
-    if (token) {
+    const storedToken = localStorage.getItem("access_token");
+    if (storedToken) {
+      setToken(storedToken);
       setIsAuthenticated(true);
       setUser({ id: "existing-user" });
     }
@@ -34,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await verifyOtp(phone, code);
     localStorage.setItem("access_token", data.access_token);
     localStorage.setItem("refresh_token", data.refresh_token);
+    setToken(data.access_token);
     setIsAuthenticated(true);
     setUser({ id: "new-user" });
   };
@@ -42,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await loginAsGuest();
     localStorage.setItem("access_token", data.access_token);
     localStorage.setItem("refresh_token", data.refresh_token);
+    setToken(data.access_token);
     setIsAuthenticated(true);
     setUser({ id: "guest-user" });
   };
@@ -49,12 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
+    setToken(null);
     setIsAuthenticated(false);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, loginWithOtp, loginGuest, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, isDriverMode, setDriverMode, loginWithOtp, loginGuest, logout }}>
       {children}
     </AuthContext.Provider>
   );

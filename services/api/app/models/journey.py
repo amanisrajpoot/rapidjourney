@@ -20,3 +20,10 @@ class Journey(BaseModel):
     price: Mapped[float] = mapped_column(Float, nullable=True)
     max_participants: Mapped[int] = mapped_column(Integer, nullable=True)
     scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    
+    # Route details
+    distance_meters: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Storing the route line as a GeoJSON LineString (or similar)
+    route_geom: Mapped[Optional["Geometry"]] = mapped_column(Geometry(geometry_type="LINESTRING", srid=4326), nullable=True)
+

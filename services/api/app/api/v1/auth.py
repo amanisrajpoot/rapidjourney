@@ -53,31 +53,56 @@ async def send_otp(request: OTPRequest, redis_client: RedisClient = Depends(Redi
         
     return {"detail": "OTP sent"}
 
+from app.core.database import AsyncSessionLocal
+from app.models.user import User
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
+
 @router.post("/otp/verify", response_model=TokenResponse)
-async def verify_otp(payload: OTPVerify, redis_client: RedisClient = Depends(RedisClient.get_client)):
+async def verify_otp(
+    payload: OTPVerify, 
+    redis_client: RedisClient = Depends(RedisClient.get_client),
+    db = Depends(get_db)
+):
     stored = await redis_client.get(f"otp:{payload.phone}")
     if stored is None or stored != payload.code:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
-    # OTP valid, delete it
+    
     await redis_client.delete(f"otp:{payload.phone}")
-    # Create user identifier (for demo generate UUID)
-    user_id = str(uuid.uuid4())
+    
+    # Check if user exists by phone
+    # For now simply create a new user to satisfy FK
+    new_user = User(phone=payload.phone)
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    
+    user_id = str(new_user.id)
     access = create_access_token(subject=user_id)
     refresh = create_refresh_token(subject=user_id)
     return TokenResponse(access_token=access, refresh_token=refresh)
 
 @router.post("/google", response_model=TokenResponse)
-async def google_login(payload: GoogleLoginRequest):
-    # Placeholder: In real implementation verify with Google
-    # For now accept any string and issue tokens
-    user_id = str(uuid.uuid4())
+async def google_login(payload: GoogleLoginRequest, db = Depends(get_db)):
+    new_user = User(email="google@example.com") # Fake for now
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    user_id = str(new_user.id)
     access = create_access_token(subject=user_id)
     refresh = create_refresh_token(subject=user_id)
     return TokenResponse(access_token=access, refresh_token=refresh)
 
 @router.post("/guest", response_model=TokenResponse)
-async def guest_login():
-    user_id = str(uuid.uuid4())
+async def guest_login(db = Depends(get_db)):
+    new_user = User(phone=f"guest_{uuid.uuid4().hex[:8]}")
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    
+    user_id = str(new_user.id)
     access = create_access_token(subject=user_id)
     refresh = create_refresh_token(subject=user_id)
     return TokenResponse(access_token=access, refresh_token=refresh)

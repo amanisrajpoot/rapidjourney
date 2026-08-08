@@ -28,7 +28,23 @@ if config.config_file_name is not None:
 # set the sqlalchemy.url dynamically from settings
 config.set_main_option('sqlalchemy.url', settings.SQLALCHEMY_DATABASE_URL)
 
-target_metadata = None  # we use autogenerate via models' MetaData
+from app.models.base import Base
+import app.models # To ensure everything is imported
+target_metadata = Base.metadata
+
+def include_object(object, name, type_, reflected, compare_to):
+    if type_ == "table" and name in [
+        "spatial_ref_sys", "topology", "layer", "faces", "edges", "bg",
+        "county", "state", "place", "tract", "zcta5", "cousub", "addr",
+        "featnames", "addrfeat", "pagc_lex", "pagc_gaz", "pagc_rules",
+        "geocode_settings", "geocode_settings_default", "loader_platform",
+        "loader_lookuptables", "loader_variables", "zip_lookup", "zip_state",
+        "zip_state_loc", "zip_lookup_all", "zip_lookup_base", "street_type_lookup",
+        "direction_lookup", "secondary_unit_lookup", "state_lookup", "county_lookup",
+        "countysub_lookup", "place_lookup", "tabblock", "tabblock20"
+    ]:
+        return False
+    return True
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -45,6 +61,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -66,6 +83,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            include_object=include_object,
         )
 
         with context.begin_transaction():

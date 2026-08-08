@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "../contexts/AuthContext";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
           <div className="relative flex flex-col h-[100dvh] w-full overflow-hidden bg-black">
             {children}
           </div>
+          <Toaster position="top-center" />
         </AuthProvider>
       </body>
     </html>

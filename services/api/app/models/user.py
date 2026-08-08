@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import String, Boolean, Float, Integer, DateTime, ForeignKey, func
+from sqlalchemy import String, Boolean, Float, Integer, DateTime, ForeignKey, func, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from geoalchemy2 import Geometry
@@ -21,6 +21,7 @@ class User(BaseModel):
     total_journeys: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="user")  # user|host|admin
+    web_push_subscription: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     # Relationships
     devices: Mapped[List["Device"]] = relationship("Device", back_populates="user", cascade="all, delete-orphan")
