@@ -148,3 +148,67 @@ async def verify_payment_and_create_request(
     )
     
     return loaded_req
+
+@router.post("/cod", response_model=RideRequestResponse)
+async def create_cod_request(
+    payment_in: PaymentCreate,
+    db: AsyncSession = Depends(get_db),
+    user_id: uuid.UUID = Depends(get_current_user_id)
+):
+    # Verify journey exists
+    result = await db.execute(select(Journey).where(Journey.id == payment_in.journey_id))
+    journey = result.scalar_one_or_none()
+    if not journey:
+        raise HTTPException(status_code=404, detail="Journey not found")
+        
+    if journey.host_id == user_id:
+        raise HTTPException(status_code=400, detail="Cannot request to join your own journey")
+        
+    # Check if request already exists
+    existing_req = await db.execute(select(RideRequest).where(
+        RideRequest.journey_id == payment_in.journey_id,
+        RideRequest.passenger_id == user_id
+    ))
+    if existing_req.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="You have already requested to join this journey")
+        
+    # Create Payment Record
+    new_payment = Payment(
+        journey_id=payment_in.journey_id,
+        user_id=user_id,
+        razorpay_order_id=f"cod_{uuid.uuid4().hex[:10]}",
+        razorpay_payment_id="COD",
+        amount=payment_in.amount,
+        status="cod_pending"
+    )
+    db.add(new_payment)
+    await db.flush()
+    
+    # Create Ride Request
+    new_request = RideRequest(
+        journey_id=payment_in.journey_id,
+        passenger_id=user_id,
+        seats_requested=1,
+        status="pending"
+    )
+    db.add(new_request)
+    await db.commit()
+    
+    # Fetch with relations
+    result = await db.execute(select(RideRequest).options(joinedload(RideRequest.passenger), joinedload(RideRequest.journey).joinedload(Journey.host)).where(RideRequest.id == new_request.id))
+    new_request_with_rels = result.scalar_one()
+    
+    # Notify driver via WebSocket in real-time
+    passenger = new_request_with_rels.passenger
+    await PubSubService.publish_journey_event(
+        str(payment_in.journey_id),
+        "new_request",
+        {
+            "request_id": str(new_request.id),
+            "passenger_name": passenger.name or "Someone",
+            "passenger_photo": passenger.photo_url,
+            "seats_requested": new_request.seats_requested,
+        }
+    )
+    
+    return new_request_with_rels

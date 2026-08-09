@@ -7,7 +7,7 @@ from .user import UserPublic
 class PaymentCreate(BaseModel):
     journey_id: uuid.UUID
     amount: float
-    razorpay_order_id: str
+    razorpay_order_id: Optional[str] = None
 
 class PaymentVerify(BaseModel):
     razorpay_payment_id: str
