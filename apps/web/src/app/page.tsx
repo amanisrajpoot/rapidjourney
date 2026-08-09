@@ -9,7 +9,7 @@ import { JourneyMatchesList } from "../components/JourneyMatchesList";
 import { DriverJourneysSheet } from "../components/DriverJourneysSheet";
 import { PassengerJourneysSheet } from "../components/PassengerJourneysSheet";
 import ProfileSheet from "../components/ProfileSheet";
-import { ChatSheet } from "../components/ChatSheet";
+import ChatSheet from "../components/ChatSheet";
 import { RatingModal } from "../components/RatingModal";
 import LocationSearchOverlay from "../components/LocationSearchOverlay";
 import { RideStatusBottomSheet } from "../components/RideStatusBottomSheet";
