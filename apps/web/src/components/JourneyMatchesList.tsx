@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { apiClient } from "../lib/api";
 import { toast } from "react-hot-toast";
-import useRazorpay from "react-razorpay";
+import { useRazorpay } from "react-razorpay";
 
 interface Journey {
     id: string;
@@ -27,7 +27,7 @@ export function JourneyMatchesList({ journeys, onRequestSent }: JourneyMatchesLi
     const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
     const [loadingId, setLoadingId] = useState<string | null>(null);
 
-    const [Razorpay] = useRazorpay();
+    const { Razorpay } = useRazorpay();
 
     const requestToJoin = async (id: string, price: number) => {
         setLoadingId(id);
