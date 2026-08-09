@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { verifyOtp, loginAsGuest } from "../lib/api";
+import { verifyOtp, loginAsGuest, apiClient } from "../lib/api";
 import { requestNotificationPermission } from "../lib/firebase";
 
 interface User {
