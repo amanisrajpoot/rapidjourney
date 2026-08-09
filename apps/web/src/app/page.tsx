@@ -9,7 +9,8 @@ import { JourneyMatchesList } from "../components/JourneyMatchesList";
 import { DriverJourneysSheet } from "../components/DriverJourneysSheet";
 import { PassengerJourneysSheet } from "../components/PassengerJourneysSheet";
 import ProfileSheet from "../components/ProfileSheet";
-import ChatSheet from "../components/ChatSheet";
+import { ChatSheet } from "../components/ChatSheet";
+import { RatingModal } from "../components/RatingModal";
 import LocationSearchOverlay from "../components/LocationSearchOverlay";
 import { RideStatusBottomSheet } from "../components/RideStatusBottomSheet";
 import { apiClient } from "../lib/api";
@@ -62,6 +63,7 @@ export default function Home() {
 
   // Chat state
   const [chatState, setChatState] = useState<{ isOpen: boolean; journeyId: string; otherPartyName: string } | null>(null);
+  const [ratingJourneyId, setRatingJourneyId] = useState<string | null>(null);
   const [hasAutoLocated, setHasAutoLocated] = useState(false);
 
   const [matches, setMatches] = useState<any[]>([]);
@@ -141,6 +143,11 @@ export default function Home() {
                     toast.success("Ride is now in progress!");
                 } else if (msg.data.status === "completed") {
                     toast.success("Journey has been completed.");
+                    if (!isDriverMode && activeJourneyId) {
+                        setRatingJourneyId(activeJourneyId);
+                    }
+                    setActiveJourneyId(null);
+                    setScreen("home");
                 }
             } else if (msg.type === "new_request" && isDriverMode) {
                 // Driver gets a ping when a new passenger requests to join
@@ -584,6 +591,13 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {ratingJourneyId && (
+        <RatingModal 
+            journeyId={ratingJourneyId} 
+            onClose={() => setRatingJourneyId(null)} 
+        />
+      )}
     </main>
   );
 }
