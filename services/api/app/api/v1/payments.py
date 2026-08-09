@@ -177,7 +177,7 @@ async def create_cod_request(
         journey_id=payment_in.journey_id,
         user_id=user_id,
         razorpay_order_id=f"cod_{uuid.uuid4().hex[:10]}",
-        razorpay_payment_id="COD",
+        razorpay_payment_id=f"COD_{uuid.uuid4().hex[:10]}",
         amount=payment_in.amount,
         status="cod_pending"
     )
