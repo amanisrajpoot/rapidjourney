@@ -160,6 +160,7 @@ export function JourneyMatchesList({ journeys, onRequestSent }: JourneyMatchesLi
                                         className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${isRequested
                                             ? 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 cursor-not-allowed'
                                             : 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 active:scale-95'
+                                            }`}
                                     >
                                         {isLoading ? (
                                         <span className="flex items-center gap-2">
