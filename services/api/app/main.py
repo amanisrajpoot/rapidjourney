@@ -4,11 +4,11 @@ from app.api.v1.auth import router as auth_router
 
 app = FastAPI(title="Journey API", version="0.1.0")
 
-# CORS - allow the frontend (localhost:3000) and any future origins
+# CORS - allow all origins in development; restrict to specific domains in production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,  # Must be False when allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )

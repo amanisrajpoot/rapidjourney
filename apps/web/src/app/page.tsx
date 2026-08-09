@@ -142,6 +142,17 @@ export default function Home() {
                 } else if (msg.data.status === "completed") {
                     toast.success("Journey has been completed.");
                 }
+            } else if (msg.type === "new_request" && isDriverMode) {
+                // Driver gets a ping when a new passenger requests to join
+                toast.success(`🙋 ${msg.data.passenger_name} wants to join your ride!`, { duration: 5000 });
+            } else if (msg.type === "request_updated" && !isDriverMode) {
+                // Passenger gets notified when driver accepts/rejects
+                const status = msg.data.new_status;
+                if (status === "accepted") {
+                    toast.success("✅ Your ride request was accepted!", { duration: 5000 });
+                } else if (status === "rejected") {
+                    toast.error("❌ Your ride request was declined.", { duration: 5000 });
+                }
             }
         } catch (e) {
             console.error("WS parse error", e);
@@ -445,7 +456,10 @@ export default function Home() {
                 <button onClick={() => setScreen("home")} className="absolute -top-12 left-0 bg-white p-2 rounded-full shadow-md text-gray-700">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
                 </button>
-                <JourneyMatchesList journeys={matches} />
+                <JourneyMatchesList 
+                    journeys={matches} 
+                    onRequestSent={() => setScreen("passenger_journeys")}
+                />
             </div>
           ) : (
             <>

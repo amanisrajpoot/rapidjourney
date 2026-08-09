@@ -67,7 +67,28 @@ export async function apiClient(endpoint: string, options: FetchOptions = {}) {
 
   if (!response.ok) {
     if (response.status === 401) {
-      // Dispatch event to clear session
+      // Try to refresh the access token before giving up
+      const refreshToken = sessionStorage.getItem("refresh_token");
+      if (refreshToken && !endpoint.includes("/auth/refresh")) {
+        try {
+          const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          });
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json();
+            sessionStorage.setItem("access_token", refreshData.access_token);
+            sessionStorage.setItem("refresh_token", refreshData.refresh_token);
+            // Retry the original request with the new token
+            const retryHeaders = { ...headers, Authorization: `Bearer ${refreshData.access_token}` };
+            const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, { ...config, headers: retryHeaders });
+            if (retryResponse.status === 204) return null;
+            if (retryResponse.ok) return retryResponse.json();
+          }
+        } catch (_) {}
+      }
+      // Refresh failed or not available — clear session
       window.dispatchEvent(new Event("auth-unauthorized"));
     }
     

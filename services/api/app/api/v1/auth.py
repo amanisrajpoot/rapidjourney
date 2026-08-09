@@ -111,3 +111,26 @@ async def guest_login(db = Depends(get_db)):
     access = create_access_token(subject=user_id)
     refresh = create_refresh_token(subject=user_id)
     return TokenResponse(access_token=access, refresh_token=refresh)
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(payload: RefreshRequest):
+    """Exchange a valid refresh token for a new access token."""
+    from app.core.security import verify_token
+    from jose import JWTError
+    try:
+        data = verify_token(payload.refresh_token)
+        if data.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+        user_id = data.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Refresh token expired or invalid")
+    
+    new_access = create_access_token(subject=user_id)
+    new_refresh = create_refresh_token(subject=user_id)
+    return TokenResponse(access_token=new_access, refresh_token=new_refresh)
