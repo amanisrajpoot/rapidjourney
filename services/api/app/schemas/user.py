@@ -17,6 +17,7 @@ class UserPrivate(UserPublic):
     phone: str
     email: Optional[str] = None
     is_verified: bool
+    wallet_balance: float = 0.0
     created_at: datetime
     updated_at: datetime
 

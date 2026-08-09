@@ -8,8 +8,10 @@ import uuid
 from app.core.database import AsyncSessionLocal
 from app.models.journey import Journey
 from app.models.request import RideRequest
+from app.models.payment import Payment
 from app.schemas.request import RideRequestCreate, RideRequestResponse, RideRequestUpdate
 from app.api.v1.journeys import get_current_user_id
+from app.api.v1.payments import get_razorpay_client
 
 router = APIRouter()
 
@@ -123,6 +125,27 @@ async def update_ride_request(
         if journey.available_seats is not None:
             journey.available_seats -= ride_req.seats_requested
             
+    if update_in.status == "rejected":
+        # Find payment and trigger refund
+        payment_result = await db.execute(select(Payment).where(
+            Payment.journey_id == journey_id,
+            Payment.user_id == ride_req.passenger_id,
+            Payment.status == "captured"
+        ))
+        payment = payment_result.scalar_one_or_none()
+        if payment:
+            try:
+                client = get_razorpay_client()
+                if payment.razorpay_payment_id:
+                    client.payment.refund(payment.razorpay_payment_id, {
+                        "amount": int(payment.amount * 100),
+                        "speed": "optimum"
+                    })
+                    payment.status = "refunded"
+            except Exception as e:
+                # Log error in real app, but proceed to mark rejected
+                print(f"Refund failed: {e}")
+                
     ride_req.status = update_in.status
     
     await db.commit()
@@ -172,6 +195,24 @@ async def cancel_ride_request(
     journey = journey_result.scalar_one_or_none()
     if journey and journey.available_seats is not None:
         journey.available_seats += ride_req.seats_requested
+    # Trigger refund since it was pending
+    payment_result = await db.execute(select(Payment).where(
+        Payment.journey_id == journey_id,
+        Payment.user_id == user_id,
+        Payment.status == "captured"
+    ))
+    payment = payment_result.scalar_one_or_none()
+    if payment:
+        try:
+            client = get_razorpay_client()
+            if payment.razorpay_payment_id:
+                client.payment.refund(payment.razorpay_payment_id, {
+                    "amount": int(payment.amount * 100),
+                    "speed": "optimum"
+                })
+                payment.status = "refunded"
+        except Exception as e:
+            print(f"Refund failed: {e}")
     
     ride_req.status = "cancelled"
     await db.commit()

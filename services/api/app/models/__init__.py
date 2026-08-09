@@ -4,6 +4,7 @@ from app.models.journey import Journey
 from app.models.request import RideRequest
 from app.models.message import Message
 from app.models.rating import Rating
+from app.models.payment import Payment
 
 __all__ = [
     "BaseModel",
@@ -14,6 +15,6 @@ __all__ = [
     "Journey",
     "RideRequest",
     "Message",
-    "Rating"
+    "Rating",
+    "Payment"
 ]
-

@@ -22,6 +22,7 @@ from app.api.v1.ws import router as ws_router
 from app.api.v1.users import router as users_router
 from app.api.v1.messages import router as messages_router
 from app.api.v1.notifications import router as notifications_router
+from app.api.v1.payments import router as payments_router
 
 app.include_router(journeys_router, prefix="/api/v1/journeys", tags=["journeys"])
 app.include_router(requests_router, prefix="/api/v1/journeys", tags=["requests"])
@@ -29,6 +30,7 @@ app.include_router(messages_router, prefix="/api/v1/journeys", tags=["messages"]
 app.include_router(ws_router, prefix="/api/v1/ws", tags=["websocket"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
 app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["notifications"])
+app.include_router(payments_router, prefix="/api/v1/payments", tags=["payments"])
 
 @app.get("/health", tags=["health"])
 async def health_check():

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { apiClient } from "../lib/api";
 import { toast } from "react-hot-toast";
+import useRazorpay from "react-razorpay";
 
 interface Journey {
     id: string;
@@ -26,18 +27,57 @@ export function JourneyMatchesList({ journeys, onRequestSent }: JourneyMatchesLi
     const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
     const [loadingId, setLoadingId] = useState<string | null>(null);
 
-    const requestToJoin = async (id: string) => {
+    const [Razorpay] = useRazorpay();
+
+    const requestToJoin = async (id: string, price: number) => {
         setLoadingId(id);
         try {
-            await apiClient.post(`/journeys/${id}/requests`, { seats_requested: 1 });
-            setRequestedIds(prev => new Set([...prev, id]));
-            toast.success("Request sent! 🎉 The driver will respond shortly.");
-            // Navigate to My Rides after a short delay
-            setTimeout(() => {
-                onRequestSent?.();
-            }, 1200);
+            // 1. Create order on backend
+            const orderRes = await apiClient.post(`/payments/create-order`, {
+                journey_id: id,
+                amount: price
+            });
+            const { order_id } = orderRes;
+
+            // 2. Open Razorpay Checkout
+            const options = {
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "", // fallback needed if not in env
+                amount: (price * 100).toString(),
+                currency: "INR",
+                name: "Rapid Journey",
+                description: "Ride Fare Payment",
+                order_id: order_id,
+                handler: async function (response: any) {
+                    try {
+                        // 3. Verify on backend
+                        await apiClient.post(`/payments/verify`, {
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature
+                        });
+                        
+                        setRequestedIds(prev => new Set([...prev, id]));
+                        toast.success("Payment successful & request sent! 🎉");
+                        setTimeout(() => {
+                            onRequestSent?.();
+                        }, 1200);
+                    } catch (err: any) {
+                        toast.error(err.message || "Failed to verify payment");
+                    }
+                },
+                theme: {
+                    color: "#000000",
+                },
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.on("payment.failed", function (response: any) {
+                toast.error(`Payment Failed: ${response.error.description}`);
+            });
+            rzp.open();
+            
         } catch (err: any) {
-            toast.error(err.message || "Failed to send request");
+            toast.error(err.message || "Failed to initiate payment");
         } finally {
             setLoadingId(null);
         }
@@ -114,16 +154,14 @@ export function JourneyMatchesList({ journeys, onRequestSent }: JourneyMatchesLi
                                     </div>
                                 ) : <div />}
 
-                                <button
-                                    onClick={() => requestToJoin(journey.id)}
-                                    disabled={isRequested || isLoading}
-                                    className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                                        isRequested
-                                            ? "bg-green-500 text-white cursor-default"
-                                            : "bg-black dark:bg-white text-white dark:text-black hover:opacity-80 disabled:opacity-50"
-                                    }`}
-                                >
-                                    {isLoading ? (
+                                    <button
+                                        onClick={() => requestToJoin(journey.id, journey.price)}
+                                        disabled={isLoading || isRequested}
+                                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${isRequested
+                                            ? 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 cursor-not-allowed'
+                                            : 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 active:scale-95'
+                                    >
+                                        {isLoading ? (
                                         <span className="flex items-center gap-2">
                                             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

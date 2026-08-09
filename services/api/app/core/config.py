@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = "your-google-client-secret"
     # SMS Provider
     SMS_PROVIDER: str = "console"
+    # Payments
+    RAZORPAY_KEY_ID: str | None = None
+    RAZORPAY_KEY_SECRET: str | None = None
     # Maps / Route
     OPEN_ROUTE_SERVICE_API_KEY: str | None = None
     # Misc

@@ -13,6 +13,7 @@ export default function ProfileSheet({ onClose }: ProfileSheetProps) {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
+  const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -25,6 +26,7 @@ export default function ProfileSheet({ onClose }: ProfileSheetProps) {
       const data = await apiClient.get("/users/me");
       setName(data.name || "");
       setBio(data.bio || "");
+      setWalletBalance(data.wallet_balance || 0);
     } catch (err: any) {
       toast.error(err.message || "Failed to load profile");
     } finally {
@@ -77,6 +79,15 @@ export default function ProfileSheet({ onClose }: ProfileSheetProps) {
                 </svg>
               )}
             </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-zinc-900 to-black dark:from-zinc-800 dark:to-zinc-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden mb-6">
+            <div className="relative z-10">
+              <p className="text-zinc-400 text-sm font-medium mb-1">Wallet Balance</p>
+              <h3 className="text-4xl font-black">₹{walletBalance.toFixed(2)}</h3>
+              <p className="text-xs text-zinc-500 mt-2">Available for your next ride or withdrawal</p>
+            </div>
+            <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
           </div>
 
           <div>

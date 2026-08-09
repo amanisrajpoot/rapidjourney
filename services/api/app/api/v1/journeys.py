@@ -8,6 +8,8 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.database import AsyncSessionLocal
 from app.models.journey import Journey
+from app.models.user import User, SavedPlace
+from app.models.payment import Payment
 from app.schemas.journey import JourneyCreate, JourneyResponse, JourneyUpdate
 from app.worker import calculate_route_task
 from app.services.notifications import NotificationService
@@ -196,6 +198,23 @@ async def update_journey_status(
                 "Journey Started!",
                 "Your journey is now in progress. Drive safe!"
             )
+            
+        # Payout to driver when journey completes
+        if journey.status == "completed":
+            # Fetch all captured payments for this journey
+            payment_result = await db.execute(select(Payment).where(
+                Payment.journey_id == journey.id,
+                Payment.status == "captured"
+            ))
+            payments = payment_result.scalars().all()
+            
+            total_payout = 0.0
+            for payment in payments:
+                total_payout += payment.amount
+                payment.status = "transferred"
+            
+            if total_payout > 0:
+                journey.host.wallet_balance += total_payout
             
     await db.commit()
     

@@ -7,6 +7,9 @@ from .journey import JourneyResponse
 
 class RideRequestCreate(BaseModel):
     seats_requested: int = 1
+    razorpay_payment_id: str
+    razorpay_order_id: str
+    razorpay_signature: str
 
 class RideRequestUpdate(BaseModel):
     status: str # 'accepted' or 'rejected'

@@ -14,7 +14,8 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hot-toast": "^2.6.0",
-    "react-map-gl": "^8.1.2"
+    "react-map-gl": "^8.1.2",
+    "react-razorpay": "^3.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
