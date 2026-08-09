@@ -1,1 +1,2 @@
 razorpay==1.4.1
+firebase-admin==6.5.0

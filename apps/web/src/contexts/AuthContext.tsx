@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { verifyOtp, loginAsGuest } from "../lib/api";
+import { requestNotificationPermission } from "../lib/firebase";
 
 interface User {
   id: string; // Placeholder for now (parsed from JWT in future)
@@ -27,6 +28,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [isDriverMode, setDriverMode] = useState(false);
+
+  const logout = () => {
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
+    sessionStorage.removeItem("is_guest");
+    setToken(null);
+    setIsAuthenticated(false);
+    setIsGuest(false);
+    setUser(null);
+    window.location.reload();
+  };
 
   useEffect(() => {
     // Check local storage on load
@@ -59,6 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true);
     setIsGuest(false);
     setUser({ id: "new-user" });
+    
+    // Request push token permission after login (needs user interaction context, which we have during login)
+    setTimeout(() => requestNotificationPermission(), 1000);
   };
 
   const loginGuest = async () => {
@@ -70,17 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true);
     setIsGuest(true);
     setUser({ id: "guest-user" });
-  };
-
-  const logout = () => {
-    sessionStorage.removeItem("access_token");
-    sessionStorage.removeItem("refresh_token");
-    sessionStorage.removeItem("is_guest");
-    setToken(null);
-    setIsAuthenticated(false);
-    setIsGuest(false);
-    setUser(null);
-    window.location.reload();
+    
+    // Request push token permission after login
+    setTimeout(() => requestNotificationPermission(), 1000);
   };
 
   return (

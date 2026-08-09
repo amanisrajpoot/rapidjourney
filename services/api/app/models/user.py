@@ -23,6 +23,7 @@ class User(BaseModel):
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="user")  # user|host|admin
     web_push_subscription: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     wallet_balance: Mapped[float] = mapped_column(Float, default=0.0)
+    fcm_token: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     # Relationships
     devices: Mapped[List["Device"]] = relationship("Device", back_populates="user", cascade="all, delete-orphan")

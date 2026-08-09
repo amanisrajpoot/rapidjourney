@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     # Payments
     RAZORPAY_KEY_ID: str | None = None
     RAZORPAY_KEY_SECRET: str | None = None
+    # Firebase Cloud Messaging
+    FIREBASE_CREDENTIALS_PATH: str | None = None
     # Maps / Route
     OPEN_ROUTE_SERVICE_API_KEY: str | None = None
     # Misc
