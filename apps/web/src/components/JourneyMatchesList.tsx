@@ -83,6 +83,26 @@ export function JourneyMatchesList({ journeys, onRequestSent }: JourneyMatchesLi
         }
     };
 
+    const requestToJoinCOD = async (id: string, price: number) => {
+        setLoadingId(id);
+        try {
+            await apiClient.post(`/payments/cod`, {
+                journey_id: id,
+                amount: price,
+                razorpay_order_id: "cod" // dummy field
+            });
+
+            toast.success("Ride requested successfully (Cash on Delivery)!");
+            setRequestedIds(prev => new Set(prev).add(id));
+            if (onRequestSent) onRequestSent();
+        } catch (err: any) {
+            console.error("COD flow failed", err);
+            toast.error(err.response?.data?.detail || "Failed to request ride");
+        } finally {
+            setLoadingId(null);
+        }
+    };
+
     if (journeys.length === 0) {
         return (
             <div className="w-full rounded-3xl bg-white dark:bg-zinc-900 p-8 shadow-2xl text-center">
@@ -156,8 +176,7 @@ export function JourneyMatchesList({ journeys, onRequestSent }: JourneyMatchesLi
 
                                     <button
                                         onClick={() => requestToJoin(journey.id, journey.price)}
-                                        disabled={isLoading || isRequested}
-                                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${isRequested
+                                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center ${isRequested
                                             ? 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 cursor-not-allowed'
                                             : 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 active:scale-95'
                                             }`}
@@ -168,13 +187,22 @@ export function JourneyMatchesList({ journeys, onRequestSent }: JourneyMatchesLi
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                                             </svg>
-                                            Sending…
                                         </span>
-                                    ) : isRequested ? "✓ Requested" : "Request to Join"}
-                                </button>
+                                    ) : isRequested ? "Requested" : "Pay with Card"}
+                                    </button>
+                                    
+                                    {!isRequested && (
+                                        <button
+                                            onClick={() => requestToJoinCOD(journey.id, journey.price)}
+                                            disabled={isLoading}
+                                            className="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 active:scale-95"
+                                        >
+                                            {isLoading ? "..." : "Cash on Delivery"}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
                 );
             })}
         </div>

@@ -11,6 +11,6 @@ RUN pip install uv
 
 COPY pyproject.toml .
 
-RUN uv pip install --system fastapi uvicorn "sqlalchemy[asyncio]" asyncpg geoalchemy2 alembic pydantic-settings "python-jose[cryptography]" "passlib[bcrypt]" "redis[hiredis]" authlib httpx celery psycopg2-binary
+RUN uv pip install --system fastapi uvicorn "sqlalchemy[asyncio]" asyncpg geoalchemy2 alembic pydantic-settings "python-jose[cryptography]" "passlib[bcrypt]" "redis[hiredis]" authlib httpx celery psycopg2-binary firebase-admin razorpay
 
 COPY . .

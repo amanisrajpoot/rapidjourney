@@ -13,7 +13,7 @@ from app.models.journey import Journey
 from app.models.payment import Payment
 from app.models.request import RideRequest
 from app.schemas.payment import PaymentCreate, PaymentVerify, PaymentResponse
-from app.schemas.request import RideRequestResponse
+from app.schemas.request import RideRequestResponse, RideRequestCreate
 from app.api.v1.journeys import get_current_user_id
 from app.services.pubsub import PubSubService
 
