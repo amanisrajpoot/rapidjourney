@@ -63,6 +63,51 @@ export function PassengerJourneysSheet({ onClose, onTrackRide, onOpenChat }: Pas
         fetchMyRequests();
     }, []);
 
+    // WebSocket logic for real-time ride tracking/updates
+    useEffect(() => {
+        const token = sessionStorage.getItem("access_token");
+        if (!token || requests.length === 0) return;
+
+        const wsHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = process.env.NEXT_PUBLIC_API_URL 
+            ? process.env.NEXT_PUBLIC_API_URL.replace(/^http(s)?:\/\//, '')
+            : `${wsHost}:8000`;
+
+        const activeSockets: WebSocket[] = [];
+
+        // Connect to each journey we care about
+        const journeyIds = new Set(requests.map(r => r.journey.id));
+        journeyIds.forEach(journeyId => {
+            const wsUrl = `${protocol}//${host}/api/v1/ws/${journeyId}?token=${token}`;
+            const ws = new WebSocket(wsUrl);
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === "request_updated") {
+                        const status = msg.data.new_status;
+                        if (status === "accepted") {
+                            toast.success("✅ Your ride request was accepted!", { duration: 5000 });
+                        } else if (status === "rejected") {
+                            toast.error("❌ Your ride request was declined.", { duration: 5000 });
+                        }
+                        fetchMyRequests(); // Refresh UI instantly
+                    } else if (msg.type === "status_update") {
+                        if (msg.data.status === "in_progress") {
+                            toast.success("🚗 Driver has started the ride!");
+                        }
+                        fetchMyRequests();
+                    }
+                } catch (e) {}
+            };
+            activeSockets.push(ws);
+        });
+
+        return () => {
+            activeSockets.forEach(ws => ws.close());
+        };
+    }, [requests.length]); // Re-connect if request count changes
+
     const handleCancel = async (req: RideRequest) => {
         setCancellingId(req.id);
         try {

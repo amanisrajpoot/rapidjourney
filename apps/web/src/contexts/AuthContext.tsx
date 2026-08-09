@@ -5,7 +5,10 @@ import { verifyOtp, loginAsGuest } from "../lib/api";
 import { requestNotificationPermission } from "../lib/firebase";
 
 interface User {
-  id: string; // Placeholder for now (parsed from JWT in future)
+  id: string;
+  name?: string;
+  phone?: string;
+  photo_url?: string;
 }
 
 interface AuthContextType {
@@ -40,13 +43,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.reload();
   };
 
+  const fetchUser = async () => {
+    try {
+      const data = await apiClient.get('/users/me');
+      setUser(data);
+    } catch (err) {
+      console.error("Failed to fetch user", err);
+    }
+  };
+
   useEffect(() => {
     // Check local storage on load
     const storedToken = sessionStorage.getItem("access_token");
     if (storedToken) {
       setToken(storedToken);
       setIsAuthenticated(true);
-      setUser({ id: "existing-user" });
+      fetchUser();
       if (sessionStorage.getItem("is_guest") === "true") {
         setIsGuest(true);
       }
@@ -70,7 +82,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.access_token);
     setIsAuthenticated(true);
     setIsGuest(false);
-    setUser({ id: "new-user" });
+    
+    // We must fetch the user details to get the real UUID
+    try {
+      const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/users/me`, {
+        headers: { 'Authorization': `Bearer ${data.access_token}` }
+      });
+      if (userRes.ok) {
+        setUser(await userRes.json());
+      }
+    } catch (e) {}
     
     // Request push token permission after login (needs user interaction context, which we have during login)
     setTimeout(() => requestNotificationPermission(), 1000);
@@ -84,7 +105,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.access_token);
     setIsAuthenticated(true);
     setIsGuest(true);
-    setUser({ id: "guest-user" });
+    
+    try {
+      const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/users/me`, {
+        headers: { 'Authorization': `Bearer ${data.access_token}` }
+      });
+      if (userRes.ok) {
+        setUser(await userRes.json());
+      }
+    } catch (e) {}
     
     // Request push token permission after login
     setTimeout(() => requestNotificationPermission(), 1000);

@@ -62,7 +62,7 @@ export default function ChatSheet({ journeyId, otherPartyName, onClose }: ChatSh
   };
 
   const connectWebSocket = () => {
-    const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("access_token");
     if (!token) return;
 
     // Standardize WS URL using current host
@@ -72,13 +72,21 @@ export default function ChatSheet({ journeyId, otherPartyName, onClose }: ChatSh
         ? process.env.NEXT_PUBLIC_API_URL.replace(/^http(s)?:\/\//, '')
         : `${wsHost}:8000`;
     
-    ws.current = new WebSocket(`${protocol}//${host}/api/v1/ws/journeys/${journeyId}?token=${token}`);
+    ws.current = new WebSocket(`${protocol}//${host}/api/v1/ws/${journeyId}?token=${token}`);
 
     ws.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "chat_message") {
-          setMessages((prev) => [...prev, data.data]);
+          setMessages((prev) => {
+            // Deduplicate: if we already have this message (or optimistic one), update it or ignore
+            // We use content matching as a simple heuristic if IDs differ initially
+            const exists = prev.some(m => m.id === data.data.id || (m.content === data.data.content && m.sender_id === data.data.sender_id && m.id.startsWith("temp-")));
+            if (exists) {
+              return prev.map(m => (m.content === data.data.content && m.id.startsWith("temp-")) ? data.data : m);
+            }
+            return [...prev, data.data];
+          });
         }
       } catch (err) {
         console.error("Failed to parse WS message", err);
@@ -92,13 +100,34 @@ export default function ChatSheet({ journeyId, otherPartyName, onClose }: ChatSh
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !user) return;
+
+    const tempId = `temp-${Date.now()}`;
+    const msgText = newMessage.trim();
+    
+    // Optimistic Update
+    const optimisticMsg: Message = {
+      id: tempId,
+      journey_id: journeyId,
+      sender_id: user.id,
+      content: msgText,
+      created_at: new Date().toISOString(),
+      sender: {
+        name: user.name || "Me",
+        photo_url: user.photo_url || null
+      }
+    };
+    
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setNewMessage("");
 
     try {
-      await apiClient.post(`/journeys/${journeyId}/messages`, { content: newMessage });
-      setNewMessage("");
+      await apiClient.post(`/journeys/${journeyId}/messages`, { content: msgText });
     } catch (err: any) {
       toast.error(err.message || "Failed to send message");
+      // Revert on failure
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
+      setNewMessage(msgText);
     }
   };
 
@@ -130,17 +159,26 @@ export default function ChatSheet({ journeyId, otherPartyName, onClose }: ChatSh
           </div>
         ) : (
           messages.map((msg, idx) => {
-            const isMe = msg.sender_id === user?.id;
+            const isMe = msg.sender_id?.toLowerCase() === user?.id?.toLowerCase();
             const timeString = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             return (
-              <div key={msg.id || idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[75%] rounded-2xl px-4 py-2 flex flex-col ${isMe ? 'bg-black text-white rounded-br-none dark:bg-white dark:text-black' : 'bg-zinc-200 text-zinc-900 rounded-bl-none dark:bg-zinc-800 dark:text-white'}`}>
+              <div key={msg.id || idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in zoom-in duration-200`}>
+                <div className={`max-w-[75%] rounded-2xl px-4 py-2 flex flex-col shadow-sm relative ${
+                  isMe 
+                    ? 'bg-[#25D366] text-white rounded-br-sm' 
+                    : 'bg-white text-zinc-900 rounded-bl-sm dark:bg-zinc-800 dark:text-white'
+                }`}>
                   {!isMe && (
-                    <p className="text-[10px] font-bold opacity-50 mb-1">{msg.sender?.name || "User"}</p>
+                    <p className="text-[11px] font-bold opacity-60 mb-1 text-emerald-600 dark:text-emerald-400">{msg.sender?.name || "User"}</p>
                   )}
-                  <p className="text-sm leading-snug">{msg.content}</p>
-                  <span className={`text-[10px] mt-1 self-end opacity-70 ${isMe ? 'text-zinc-300 dark:text-zinc-600' : 'text-zinc-500'}`}>
+                  <p className="text-[15px] leading-snug">{msg.content}</p>
+                  <span className={`text-[10px] mt-1 self-end opacity-70 flex items-center gap-1 ${
+                    isMe ? 'text-green-100' : 'text-zinc-500'
+                  }`}>
                     {timeString}
+                    {isMe && (
+                      <svg className="w-3 h-3 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    )}
                   </span>
                 </div>
               </div>

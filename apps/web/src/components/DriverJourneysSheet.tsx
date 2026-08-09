@@ -41,6 +41,46 @@ export function DriverJourneysSheet({ onClose, onStartRide, onOpenChat }: Driver
         fetchHostedJourneys();
     }, []);
 
+    // WebSocket logic for new passenger requests
+    useEffect(() => {
+        const token = sessionStorage.getItem("access_token");
+        if (!token || journeys.length === 0) return;
+
+        const wsHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = process.env.NEXT_PUBLIC_API_URL 
+            ? process.env.NEXT_PUBLIC_API_URL.replace(/^http(s)?:\/\//, '')
+            : `${wsHost}:8000`;
+
+        const activeSockets: WebSocket[] = [];
+
+        journeys.filter(j => j.status === 'pending').forEach(journey => {
+            const wsUrl = `${protocol}//${host}/api/v1/ws/${journey.id}?token=${token}`;
+            const ws = new WebSocket(wsUrl);
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === "new_request") {
+                        toast.success(`🙋 ${msg.data.passenger_name} wants to join your ride!`, { duration: 5000 });
+                        // Refresh the request list for this specific journey
+                        fetchRequestsForJourney(journey.id);
+                        
+                        // If it wasn't expanded, maybe we auto-expand it? 
+                        // Or just let the user see the new count
+                    } else if (msg.type === "request_cancelled") {
+                        toast.error(`A passenger cancelled their request.`, { duration: 4000 });
+                        fetchRequestsForJourney(journey.id);
+                    }
+                } catch (e) {}
+            };
+            activeSockets.push(ws);
+        });
+
+        return () => {
+            activeSockets.forEach(ws => ws.close());
+        };
+    }, [journeys.length]);
+
     const fetchHostedJourneys = async () => {
         try {
             const data = await apiClient.get("/journeys/me/hosted");
