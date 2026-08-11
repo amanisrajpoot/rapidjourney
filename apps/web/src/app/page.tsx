@@ -10,6 +10,7 @@ import { DriverJourneysSheet } from "../components/DriverJourneysSheet";
 import { PassengerJourneysSheet } from "../components/PassengerJourneysSheet";
 import ProfileSheet from "../components/ProfileSheet";
 import ChatSheet from "../components/ChatSheet";
+import { GlobalJourneyListener } from "../components/GlobalJourneyListener";
 import { RatingModal } from "../components/RatingModal";
 import LocationSearchOverlay from "../components/LocationSearchOverlay";
 import { RideStatusBottomSheet } from "../components/RideStatusBottomSheet";
@@ -117,6 +118,31 @@ export default function Home() {
   }, [isDriverMode, activeJourneyId, activeJourneyStatus]);
 
   // WebSocket Connection
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    // Global listener for cross-component reactive UI updates
+    const handleJourneyEvent = (e: Event) => {
+        const customEvent = e as CustomEvent;
+        const msg = customEvent.detail.message;
+        
+        if (msg.type === "request_updated" && msg.data.new_status === "accepted") {
+            // Auto switch to active journey when a driver accepts your request
+            setActiveJourneyId(customEvent.detail.journeyId);
+            setActiveJourneyStatus("pending"); // Waiting for driver to start
+            setScreen("activeJourney");
+        } else if (msg.type === "status_update" && msg.data.status === "in_progress") {
+            // Auto switch to active journey tracking when driver starts the ride
+            setActiveJourneyId(customEvent.detail.journeyId);
+            setActiveJourneyStatus("in_progress");
+            setScreen("activeJourney");
+        }
+    };
+    
+    window.addEventListener("journey-event", handleJourneyEvent);
+    return () => window.removeEventListener("journey-event", handleJourneyEvent);
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (!activeJourneyId) {
         if (wsRef.current) {
@@ -277,7 +303,10 @@ export default function Home() {
   [destPlace]);
 
   return (
-    <main className="relative h-full w-full overflow-hidden bg-zinc-100 dark:bg-black">
+    <div className="relative h-screen w-full overflow-hidden bg-zinc-50 dark:bg-black">
+      {/* Background WS Listener */}
+      <GlobalJourneyListener />
+      
       {/* ── MAP LAYER ── */}
       <div className="absolute inset-0 z-0">
         <InteractiveMap

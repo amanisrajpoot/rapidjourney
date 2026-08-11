@@ -30,16 +30,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
-  const [isDriverMode, setDriverMode] = useState(false);
+  const [isDriverMode, setDriverModeState] = useState(false);
 
   const logout = () => {
     sessionStorage.removeItem("access_token");
     sessionStorage.removeItem("refresh_token");
     sessionStorage.removeItem("is_guest");
+    localStorage.removeItem("is_driver_mode");
     setToken(null);
     setIsAuthenticated(false);
     setIsGuest(false);
     setUser(null);
+    setDriverModeState(false);
     window.location.reload();
   };
 
@@ -59,9 +61,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(storedToken);
       setIsAuthenticated(true);
       fetchUser();
-      if (sessionStorage.getItem("is_guest") === "true") {
-        setIsGuest(true);
-      }
+    }
+    const guestFlag = sessionStorage.getItem("is_guest");
+    if (guestFlag === "true") {
+      setIsGuest(true);
+    }
+    
+    // Restore driver mode preference
+    const driverFlag = localStorage.getItem("is_driver_mode");
+    if (driverFlag === "true") {
+      setDriverModeState(true);
     }
 
     const handleUnauthorized = () => {
@@ -74,6 +83,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const setDriverMode = (mode: boolean) => {
+    setDriverModeState(mode);
+    if (mode) {
+      localStorage.setItem("is_driver_mode", "true");
+    } else {
+      localStorage.setItem("is_driver_mode", "false");
+    }
+  };
   const loginWithOtp = async (phone: string, code: string) => {
     const data = await verifyOtp(phone, code);
     sessionStorage.setItem("access_token", data.access_token);
