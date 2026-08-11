@@ -65,12 +65,9 @@ export default function ChatSheet({ journeyId, otherPartyName, onClose }: ChatSh
     const token = sessionStorage.getItem("access_token");
     if (!token) return;
 
-    // Standardize WS URL using current host
+    // Connect via Next.js proxy
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const host = process.env.NEXT_PUBLIC_API_URL 
-        ? process.env.NEXT_PUBLIC_API_URL.replace(/^http(s)?:\/\//, '')
-        : `${wsHost}:8000`;
+    const host = window.location.host;
     
     ws.current = new WebSocket(`${protocol}//${host}/api/v1/ws/${journeyId}?token=${token}`);
 

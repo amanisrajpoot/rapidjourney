@@ -68,11 +68,9 @@ export function PassengerJourneysSheet({ onClose, onTrackRide, onOpenChat }: Pas
         const token = sessionStorage.getItem("access_token");
         if (!token || requests.length === 0) return;
 
-        const wsHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+        // Connect via Next.js proxy
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = process.env.NEXT_PUBLIC_API_URL 
-            ? process.env.NEXT_PUBLIC_API_URL.replace(/^http(s)?:\/\//, '')
-            : `${wsHost}:8000`;
+        const host = window.location.host;
 
         const activeSockets: WebSocket[] = [];
 

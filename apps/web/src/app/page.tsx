@@ -126,9 +126,10 @@ export default function Home() {
         return;
     }
 
-    // Connect to WebSocket using the current host so mobile devices on LAN can connect
-    const wsHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const wsUrl = `ws://${wsHost}:8000/api/v1/ws/${activeJourneyId}`;
+    // Connect to WebSocket using the current host so it passes through the Next.js proxy
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host; // This includes the port, e.g., localhost:3000
+    const wsUrl = `${protocol}//${host}/api/v1/ws/${activeJourneyId}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
